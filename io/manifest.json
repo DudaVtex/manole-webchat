@@ -1,0 +1,45 @@
+{
+  "vendor": "manole",
+  "name": "webchat-assistant",
+  "version": "0.1.4",
+  "title": "Assistente Manole (WebChat)",
+  "description": "Painel de WebChat da Weni com a marca Manole: catálogo em carrossel, mensagens rápidas nas páginas de produto e carrinho VTEX.",
+  "builders": {
+    "react": "3.x",
+    "store": "0.x",
+    "pixel": "0.x",
+    "docs": "0.x"
+  },
+  "dependencies": {
+    "vtex.pixel-interfaces": "1.x"
+  },
+  "settingsSchema": {
+    "title": "Assistente Manole (WebChat)",
+    "type": "object",
+    "properties": {
+      "channelUuid": {
+        "title": "UUID do canal WebChat",
+        "description": "O channelUuid de dentro do script.js do canal (não o id do caminho apptypes/wwc/...). Vazio usa o canal da Manole.",
+        "type": "string",
+        "default": "7d8b4ce9-ebf0-4532-a723-f18db53ec6b6"
+      },
+      "title": {
+        "title": "Título do painel",
+        "type": "string",
+        "default": "Assistente Manole"
+      },
+      "subtitle": {
+        "title": "Subtítulo do painel",
+        "type": "string",
+        "default": "Livros, e-books e cursos para a sua área"
+      },
+      "disabled": {
+        "title": "Desativar o painel",
+        "description": "Esconde o painel sem desinstalar o app.",
+        "type": "boolean",
+        "default": false
+      }
+    }
+  },
+  "$schema": "https://raw.githubusercontent.com/vtex/node-vtex-api/master/gen/manifest.schema"
+}

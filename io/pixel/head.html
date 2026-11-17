@@ -1,0 +1,24 @@
+<script>
+  (function () {
+    // App settings from the admin. The pixel builder URL-encodes them
+    // ("Assistente%20Manole"), so decode first. Empty values keep the
+    // panel's defaults.
+    function setting(value) {
+      try {
+        return decodeURIComponent(value);
+      } catch (e) {
+        return value;
+      }
+    }
+    var demo = (window.WebchatDemo = window.WebchatDemo || {});
+    demo.config = Object.assign(
+      {
+        channelUuid: setting("{{settings.channelUuid}}"),
+        title: setting("{{settings.title}}"),
+        subtitle: setting("{{settings.subtitle}}")
+      },
+      demo.config || {}
+    );
+    demo.disabled = setting("{{settings.disabled}}") === "true";
+  })();
+</script>
