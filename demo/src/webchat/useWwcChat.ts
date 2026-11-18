@@ -135,6 +135,13 @@ export function useWwcChat({ from, channelUuid, socketUrl, flowsOrigin, collectV
           return;
 
         case 'error':
+          // A failed starters request is not the shopper's problem: no banner,
+          // and the panel falls back to its own quick messages at once.
+          if (typeof frame.error === 'string' && frame.error.includes('starters')) {
+            setStarters([]);
+            setStartersAnswered(true);
+            return;
+          }
           setWaiting(false);
           setStreaming(null);
           setError(frame.error || 'O assistente teve um problema. Tente novamente em instantes.');

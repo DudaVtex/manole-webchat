@@ -38,6 +38,34 @@ export async function lookupProductLink(origin, skuId) {
  * @param {string} origin
  * @param {string[]} slugs
  */
+/**
+ * One product as the catalog API returns it, cut to what the back-in-stock
+ * rules read (SKU, sellers, stock) plus its name. The demo can't call the
+ * store's catalog from the browser (no CORS), so its server does.
+ */
+export async function lookupRawProduct(origin, slug) {
+  const site = origin.replace(/\/$/, '');
+  if (!/^[a-z0-9-]{1,200}$/.test(slug)) return null;
+  const response = await fetch(`${site}/api/catalog_system/pub/products/search/${slug}/p`, {
+    headers: { accept: 'application/json' },
+  });
+  if (!response.ok) return null;
+  const product = (await response.json())?.find((p) => p.linkText === slug);
+  if (!product) return null;
+  return {
+    linkText: product.linkText,
+    productName: product.productName,
+    items: (product.items || []).map((item) => ({
+      itemId: item.itemId,
+      sellers: (item.sellers || []).map((s) => ({
+        sellerId: s.sellerId,
+        sellerDefault: s.sellerDefault,
+        commertialOffer: { AvailableQuantity: s.commertialOffer?.AvailableQuantity },
+      })),
+    })),
+  };
+}
+
 export async function lookupProductsBySlugs(origin, slugs) {
   const site = origin.replace(/\/$/, '');
   const valid = Array.from(new Set(slugs)).filter((slug) => /^[a-z0-9-]{1,200}$/.test(slug)).slice(0, 12);
@@ -162,6 +190,15 @@ export function homepageDemoPlugin({ origin, badge }) {
           res.setHeader('content-type', 'application/json');
           res.setHeader('cache-control', 'no-store');
           res.end(JSON.stringify({ products }));
+          return;
+        }
+        if (req.method === 'GET' && path === '/api/product') {
+          const slug = new URL(req.url || '/', 'http://localhost').searchParams.get('slug') || '';
+          const product = await lookupRawProduct(site, slug).catch(() => null);
+          res.statusCode = product ? 200 : 404;
+          res.setHeader('content-type', 'application/json');
+          res.setHeader('cache-control', 'no-store');
+          res.end(JSON.stringify(product));
           return;
         }
         if (req.method === 'GET' && path === '/api/product-link') {

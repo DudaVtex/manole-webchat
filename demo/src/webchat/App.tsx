@@ -20,6 +20,8 @@ import CartNotice, { NOTICE_MS } from './CartNotice';
 import type { ChatProduct } from './mapMessage';
 import { resolveProductUrl } from './product';
 import { setCatalogMode, CatalogMode } from './catalog';
+import { evaluateOffer, subscribe as subscribeBackInStock, BackInStockOffer } from './backInStock';
+import BackInStockForm from './BackInStockForm';
 
 export interface AppConfig {
   socketUrl: string;
@@ -62,6 +64,12 @@ export interface AppConfig {
    * becomes the product name, so the agent knows which product is meant.
    */
   pdpFallbackStarters?: { label: string; text: string }[];
+  /**
+   * "Avise-me quando voltar ao estoque" on out-of-stock product pages
+   * (VTEX CX back-in-stock, needs vtex.agentic-cx and the agent active).
+   * On the Vercel demo the form is validated but nothing is sent (backInStock.ts).
+   */
+  backInStock?: { enabled: boolean };
 }
 
 const HINT_MS = 8000;
@@ -222,8 +230,46 @@ export default function App({ config }: { config: AppConfig }) {
       text: text.replace('{produto}', name ? `"${name}"` : 'este produto'),
     }));
   }, [onRequestedProduct, pdpStarters, startersAnswered, startersOverdue, starterProduct, config.pdpFallbackStarters]);
+
+  // ---- Back in stock: an out-of-stock PDP offers the sign-up instead of questions ----
+  const [bisOffer, setBisOffer] = useState<(BackInStockOffer & { slug: string }) | null>(null);
+  const [bisFormOpen, setBisFormOpen] = useState(false);
+  const bisEnabled = Boolean(config.backInStock?.enabled);
+
+  useEffect(() => {
+    setBisFormOpen(false);
+    if (!bisEnabled || !slug) {
+      setBisOffer(null);
+      return;
+    }
+    let current = true;
+    evaluateOffer(slug, { socketUrl: config.socketUrl, channelUuid: config.channelUuid })
+      .then((offer) => {
+        if (current) setBisOffer(offer ? { ...offer, slug } : null);
+      })
+      .catch(() => {
+        if (current) setBisOffer(null);
+      });
+    return () => {
+      current = false;
+    };
+  }, [bisEnabled, slug, config.socketUrl, config.channelUuid]);
+
+  const activeBisOffer = bisOffer && bisOffer.slug === slug ? bisOffer : null;
+  const chips: { label: string; onClick: () => void }[] = activeBisOffer
+    ? [
+        {
+          label: 'Avise-me quando voltar ao estoque',
+          onClick: () => {
+            setOpen(true);
+            setBisFormOpen(true);
+          },
+        },
+      ]
+    : starterList.map(({ label, text }) => ({ label, onClick: () => sendStarter(text) }));
+
   const showStarters =
-    startersShown && !startersClosed && !open && !hostCartOpen && messages.length === 0 && starterList.length > 0;
+    startersShown && !startersClosed && !open && !hostCartOpen && messages.length === 0 && chips.length > 0 && !bisFormOpen;
 
   function closeStarters() {
     setStartersClosed(true);
@@ -406,8 +452,8 @@ export default function App({ config }: { config: AppConfig }) {
           <button type="button" className="krc-starters-close" onClick={closeStarters} aria-label="Fechar sugestões">
             <CloseIcon size={12} />
           </button>
-          {starterList.map(({ label, text }) => (
-            <button type="button" key={label} className="krc-starter" onClick={() => sendStarter(text)}>
+          {chips.map(({ label, onClick }) => (
+            <button type="button" key={label} className="krc-starter" onClick={onClick}>
               {label}
             </button>
           ))}
@@ -480,6 +526,19 @@ export default function App({ config }: { config: AppConfig }) {
               onSend={send}
               onAddToCart={addToCart}
             />
+            {bisFormOpen && activeBisOffer && (
+              <BackInStockForm
+                key={activeBisOffer.skuId}
+                offer={activeBisOffer}
+                onSubmit={(contact) =>
+                  subscribeBackInStock(activeBisOffer, contact, {
+                    socketUrl: config.socketUrl,
+                    channelUuid: config.channelUuid,
+                  })
+                }
+                onDismiss={() => setBisFormOpen(false)}
+              />
+            )}
           </div>
         </div>
 

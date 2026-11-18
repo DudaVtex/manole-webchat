@@ -26,6 +26,9 @@ export const DEFAULT_CONFIG: AppConfig = {
   // Quick messages above the launcher appear only on product pages (PDP):
   // the ones the platform generates for that product (`get_pdp_starters`), or
   // these when it returns none. `{produto}` becomes the product name.
+  // Out-of-stock product pages offer "Avise-me quando voltar ao estoque".
+  // On the Vercel demo the sign-up is simulated (no store session there).
+  backInStock: { enabled: true },
   pdpFallbackStarters: [
     { label: 'Para quem é indicado?', text: 'Para quem é indicado {produto}?' },
     { label: 'Quais temas aborda?', text: 'Quais temas {produto} aborda?' },

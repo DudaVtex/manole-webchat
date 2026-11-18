@@ -13,6 +13,10 @@ export function setCatalogMode(next: CatalogMode | undefined) {
   mode = next === 'store' ? 'store' : 'proxy';
 }
 
+export function catalogMode(): CatalogMode {
+  return mode;
+}
+
 export interface CatalogRow {
   slug: string;
   skuId: string;
